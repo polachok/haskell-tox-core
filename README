@@ -1,0 +1,2 @@
+To compile the test on linux:
+ghc --make Test.hs /usr/local/lib/libtoxcore.so
