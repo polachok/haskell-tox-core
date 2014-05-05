@@ -8,6 +8,7 @@ import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base16 as BS16
 
 -- | Uninspectable data type for the Tox struct
 data Tox
@@ -49,9 +50,8 @@ foreign import ccall "tox_get_address"
 
 toxGetAddress :: Ptr Tox -> IO (String)
 toxGetAddress tox = do
-        addrPtr <- (mallocArray 64 :: IO (Ptr CUChar))
+        addrPtr <- (mallocArray 38 :: IO (Ptr CUChar))
         c_tox_get_address tox addrPtr
-        addrArray <- peekArray 64 addrPtr
+        addrArray <- peekArray 38 addrPtr
         free addrPtr
-        putStrLn $ show $ addrArray
-        return (map (toEnum . fromIntegral) addrArray)
+        return $ show $ BS16.encode $ BSC.pack $ (map (toEnum . fromIntegral) addrArray)
