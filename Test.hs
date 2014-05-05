@@ -1,11 +1,15 @@
 import Tox.Core
 import Control.Concurrent
+import Control.Monad
+import qualified Data.ByteString.Base16 as BS16
 
 main = do
-        let tox = toxNew False
+        tox <- toxNew False
         address <- toxGetAddress tox
         putStrLn address
-        putStrLn $ show $ toxIsconnected tox
-        toxBootstrapFromAddress tox "192.254.75.98" False 33445 "951C88B7E75C867418ACDB5D273821372BB5BD652740BCDF623A4FA293E75D2F"
-        threadDelay 1000000
-        putStrLn $ show $ toxIsconnected tox
+        toxBootstrapFromAddress tox "54.199.139.199" False 33445 "7F9C31FE850E97CEFD4C4591DF93FC757C7C12549DDD55F8EEAECC34FE76C029"
+        forever $ do
+            toxDo tox
+            connected <- toxIsconnected tox
+            if connected then putStrLn "Connected" else return ()
+            threadDelay 1000

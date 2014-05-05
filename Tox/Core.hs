@@ -14,20 +14,22 @@ import qualified Data.ByteString.Base16 as BS16
 data Tox
 
 foreign import ccall "tox_new"
-    c_tox_new :: CUInt -> Ptr Tox
+    c_tox_new :: CUInt -> IO (Ptr Tox)
 
 -- | Call on startup, returns a pointer to a tox struct, if ipv6 is
 -- True then tox runs in ipv6 mode.
-toxNew :: Bool -> Ptr Tox
+toxNew :: Bool -> IO (Ptr Tox)
 toxNew ipv6 = case (ipv6) of
                   True -> c_tox_new $ fromIntegral 1
                   False -> c_tox_new $ fromIntegral 0
 
 foreign import ccall "tox_isconnected"
-    c_tox_isconnected :: Ptr Tox -> CInt
+    c_tox_isconnected :: Ptr Tox -> IO (CInt)
 
-toxIsconnected :: Ptr Tox -> Bool
-toxIsconnected tox = (1==) $ fromIntegral $ c_tox_isconnected tox
+toxIsconnected :: Ptr Tox -> IO (Bool)
+toxIsconnected tox = do
+        x <- c_tox_isconnected tox
+        return $ (1==) $ fromIntegral x
 
 
 foreign import ccall "tox_bootstrap_from_address"
@@ -35,7 +37,10 @@ foreign import ccall "tox_bootstrap_from_address"
 
 toxBootstrapFromAddress :: Ptr Tox -> String -> Bool -> Int -> String -> IO ()
 toxBootstrapFromAddress tox addr ipv6 port key = do
-        k <- newArray $ map (CUChar . fromIntegral . fromEnum) key
+        let bytes = (BSC.unpack $ fst $ BS16.decode $ BSC.pack key)
+        putStrLn $ bytes
+        putStrLn $ show $ length bytes
+        k <- newArray $ map (CUChar . fromIntegral . fromEnum) bytes
         a <- newArray $ map (CUChar . fromIntegral . fromEnum) addr
         let p = CUShort . fromIntegral $ port
         let ipv = CUChar . fromIntegral $ case (ipv6) of
@@ -55,3 +60,9 @@ toxGetAddress tox = do
         addrArray <- peekArray 38 addrPtr
         free addrPtr
         return $ show $ BS16.encode $ BSC.pack $ (map (toEnum . fromIntegral) addrArray)
+
+foreign import ccall "tox_do"
+    c_tox_do :: Ptr Tox -> IO ()
+
+toxDo :: Ptr Tox -> IO ()
+toxDo tox = c_tox_do tox
