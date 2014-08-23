@@ -33,20 +33,17 @@ toxIsconnected tox = do
 
 
 foreign import ccall "tox_bootstrap_from_address"
-    c_tox_bootstrap_from_address :: Ptr Tox -> Ptr CUChar -> CUChar -> CUShort -> Ptr CUChar -> IO ()
+    c_tox_bootstrap_from_address :: Ptr Tox -> Ptr CUChar -> CUShort -> Ptr CUChar -> IO ()
 
-toxBootstrapFromAddress :: Ptr Tox -> String -> Bool -> Int -> String -> IO ()
-toxBootstrapFromAddress tox addr ipv6 port key = do
+toxBootstrapFromAddress :: Ptr Tox -> String -> Int -> String -> IO ()
+toxBootstrapFromAddress tox addr port key = do
         let bytes = (BSC.unpack $ fst $ BS16.decode $ BSC.pack key)
         putStrLn $ bytes
         putStrLn $ show $ length bytes
         k <- newArray $ map (CUChar . fromIntegral . fromEnum) bytes
         a <- newArray $ map (CUChar . fromIntegral . fromEnum) addr
         let p = CUShort . fromIntegral $ port
-        let ipv = CUChar . fromIntegral $ case (ipv6) of
-                      True -> 1
-                      False -> 0
-        c_tox_bootstrap_from_address tox a ipv p k
+        c_tox_bootstrap_from_address tox a p k
         free k
         free a
 
@@ -66,3 +63,15 @@ foreign import ccall "tox_do"
 
 toxDo :: Ptr Tox -> IO ()
 toxDo tox = c_tox_do tox
+
+foreign import ccall "wrapper"
+  wrap_friend_request :: (Ptr Tox -> Ptr CUChar -> Ptr CUChar -> CUInt -> Ptr a -> IO ()) -> IO (FunPtr (Ptr Tox -> Ptr CUChar -> Ptr CUChar -> CUInt -> Ptr a -> IO ()))
+
+foreign import ccall "tox_callback_friend_request"
+    c_tox_callback_friend_request :: Ptr Tox -> FunPtr (Ptr Tox -> Ptr CUChar -> Ptr CUChar -> CUInt -> Ptr a -> IO ()) -> IO ()
+
+tox_callback_friend_request :: Ptr Tox -> (Ptr Tox -> Ptr CUChar -> Ptr CUChar -> CUInt -> Ptr a -> IO ()) -> IO ()
+tox_callback_friend_request tox cb = wrap_friend_request cb >>= \wcb -> c_tox_callback_friend_request tox wcb
+
+test_callback :: Ptr Tox -> Ptr CUChar -> Ptr CUChar -> CUInt -> Ptr a -> IO ()
+test_callback tox a _ _ _ = putStrLn "GOT FRIEND REQUEST OR SOMETHING"
